@@ -79,6 +79,12 @@ python -m ipykernel install --user --name drlnd --display-name "drlnd"
 
 ![Kernel][image2]
 
+## Training and inference
+
+The train loop and inference of Navigation (Pixels) environment are in 'p1_navigation/Deep_Q_Network_Navigation(_Pixels).ipynb'.
+ The pre-trained model with the highest score in 'p1_navigation/Navigation_(Pixels_)checkpoint'.
+
+
 ## Implementation and Resultats
 
 The implementation and resultats are discussed in the report.
