@@ -3,6 +3,7 @@
 import numpy as np
 from collections import namedtuple, deque
 
+
 import torch
 import torch.nn.functional as F
 
@@ -12,7 +13,6 @@ BATCH_SIZE = 64         # minibatch size
 GAMMA = 0.99            # discount factor
 TAU = 1e-3              # for soft update of target parameters
 UPDATE_EVERY = 4        # how often to update the network
-EPS=1e-9                # minimum priority
 
 
 class AgentQ():
@@ -130,7 +130,7 @@ class AgentQ():
         Q_expected = self.qnetwork_local(states).gather(1, actions)
         
         
-        # Update prioritty
+        # Update priority
         self.memory.update_prioritty((Q_targets-Q_expected).detach())
         
 
@@ -183,10 +183,14 @@ class ReplayBuffer:
         self.a=a
         self.b=b
         self.idx=None
+        self.eps=1./self.buffer_size**2
+        self.max_priority=1.
+        self.max_weight=0.
     
     def add(self, state, action, reward, next_state, done):
         """Add a new experience to memory."""
-        self.priority.append(self.max_priority())
+        
+        self.priority.append(self.max_priority)
         
         e = self.experience(state, action, reward, next_state, done)
         self.memory.append(e)
@@ -196,8 +200,10 @@ class ReplayBuffer:
         """Randomly sample a batch of experiences from memory."""
         
         prob=self.get_prob() # calcul prioritised probability
+        
+        l=len(self)
 
-        self.idx=np.random.choice(np.arange(len(self)), size=self.batch_size, p=prob.cpu().numpy()) # get the sample indexes and store them
+        self.idx=np.random.choice(np.arange(l), size=self.batch_size, p=prob.cpu().numpy()) # get the sample indexes and store them
         experiences = [self.memory[i] for i in self.idx]
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(self.device)
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(self.device)
@@ -206,8 +212,9 @@ class ReplayBuffer:
         dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(self.device)
         
         #evaluate normalised adjustment
-        adj=(self.buffer_size*prob[self.idx])**(-0.5*self.b)
-        adj/=adj.max()
+        adj=(l*prob[self.idx])**(-0.5*self.b)
+        self.max_weight=max(self.max_weight,adj.max().item())
+        adj/=self.max_weight
         
         
         return (states, actions, rewards, next_states, dones, torch.unsqueeze(adj,1))
@@ -216,24 +223,21 @@ class ReplayBuffer:
         """Return the current size of internal memory."""
         return len(self.memory)
     
-    def max_priority(self):
-        
-        if len(self)==0:
-            return 1.
-        else:
-            return torch.FloatTensor(self.priority).to(self.device).max().item()
-    
     def get_prob(self):
-        """Return the probability of ."""
-        prob=torch.FloatTensor(self.priority).to(self.device)
+        """Return the probability."""
+        prob=torch.FloatTensor(self.priority).to(self.device)**self.a
         return prob/prob.sum()
     
     def update_prioritty(self,delta):
         """Update priority."""
     
-        delta=(delta.abs()+EPS)**self.a
+        delta=delta.abs()+self.eps
+        
+        self.max_priority=max(self.max_priority,delta.max().item())
+        
         for i,j in enumerate(self.idx):
             self.priority[j]=delta[i].item()
+            
         
         
         
