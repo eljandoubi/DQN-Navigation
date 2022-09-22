@@ -65,7 +65,7 @@ To set up your python environment to run the code in this repository, follow the
 	
 5. Clone the repository, and navigate to the `python/` folder.  Then, install several dependencies.
 ```bash
-git clone https://github.com/udacity/Value-based-methods.git
+git clone https://github.com/eljandoubi/DQN-Navigation.git
 cd Value-based-methods/python
 pip install .
 ```
