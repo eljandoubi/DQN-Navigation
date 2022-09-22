@@ -80,10 +80,13 @@ python -m ipykernel install --user --name drlnd --display-name "drlnd"
 ![Kernel][image2]
 
 ## Training and inference
+You can train and/or inference Navigation (Pixels) environment:
 
-You can train and inference Navigation (Pixels) environment by runing `p1_navigation/Deep_Q_Network_Navigation(_Pixels).ipynb`.
+First, go to `p1_navigation/`.
 
-The pre-trained model with the highest score is sotred in `p1_navigation/Navigation_(Pixels_)checkpoint`.
+Then, run the traing and/or inference cell of `Deep_Q_Network_Navigation(_Pixels).ipynb`.
+
+The pre-trained model with the highest score is sotred in `Navigation_(Pixels_)checkpoint`.
 
 
 ## Implementation and Resultats
