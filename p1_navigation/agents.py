@@ -12,7 +12,7 @@ BATCH_SIZE = 64         # minibatch size
 GAMMA = 0.99            # discount factor
 TAU = 1e-3              # for soft update of target parameters
 UPDATE_EVERY = 4        # how often to update the network
-EPS=1e-9                # minimum priorty
+EPS=1e-9                # minimum priority
 
 
 class AgentQ():
@@ -36,8 +36,8 @@ class AgentQ():
             dqn ("vanilla","double"): DQN version
             buffer_size  (int): replay buffer size
             batch_size (int): minibatch size
-            a (float):
-            b (float):
+            a (float): priority power
+            b (float): adjustment power
         """
         
         assert dqn in ["vanilla","double"]
@@ -169,6 +169,8 @@ class ReplayBuffer:
             buffer_size (int): maximum size of buffer
             batch_size (int): size of each training batch
             seed (int): random seed
+            a (float): priority power
+            b (float): adjustment power
         """
         self.action_size = action_size
         self.memory = deque(maxlen=buffer_size)
@@ -193,9 +195,9 @@ class ReplayBuffer:
     def sample(self):
         """Randomly sample a batch of experiences from memory."""
         
-        prob=self.get_prob()
+        prob=self.get_prob() # calcul prioritised probability
 
-        self.idx=np.random.choice(np.arange(len(self)), size=self.batch_size, p=prob.cpu().numpy())
+        self.idx=np.random.choice(np.arange(len(self)), size=self.batch_size, p=prob.cpu().numpy()) # get the sample indexes and store them
         experiences = [self.memory[i] for i in self.idx]
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(self.device)
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(self.device)
@@ -203,6 +205,7 @@ class ReplayBuffer:
         next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(self.device)
         dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(self.device)
         
+        #evaluate normalised adjustment
         adj=(self.buffer_size*prob[self.idx])**(-0.5*self.b)
         adj/=adj.max()
         
