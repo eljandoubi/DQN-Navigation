@@ -1,0 +1,10 @@
+tensorflow
+matplotlib
+jupyter
+pytest
+docopt
+pyyaml
+protobuf
+grpcio
+scipy
+ipykernel
