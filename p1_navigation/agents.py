@@ -189,7 +189,7 @@ class ReplayBuffer:
     def add(self, state, action, reward, next_state, done):
         """Add a new experience to memory."""
         
-        temp=self.weight[0]*(len(self)==self.buffer_size)
+        temp= 0 if len(self)<self.buffer_size else self.weight[0]
         self.weight.append(self.max_priority**self.a)
         self.sum_weight+=self.weight[-1]-temp
         
