@@ -225,10 +225,6 @@ class ReplayBuffer:
         """Return the current size of internal memory."""
         return len(self.memory)
     
-    def get_prob(self):
-        """Return the probability."""
-        weights=torch.FloatTensor(self.weight).to(self.device)
-        return weights/self.sum_weight
     
     def update_prioritty(self,delta):
         """Update transition priority."""
@@ -238,6 +234,9 @@ class ReplayBuffer:
         self.max_priority=max(self.max_priority,delta.max().item())
         
         delta=delta**self.a
+        
+        if len(self.idx)!=len(set(self.idx)):
+            print(self.idx)
         
         self.sum_weight+=(delta-self.weight[self.idx]).sum()
         
