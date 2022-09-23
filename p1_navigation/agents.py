@@ -181,16 +181,21 @@ class ReplayBuffer:
         self.buffer_size=buffer_size
         self.a=a
         self.b=b
-        self.max_priority=1.
-        self.weight = deque(maxlen=buffer_size)
+        self.max_priority=torch.tensor([1.]).to(device)
+        self.weight = torch.tensor([]).to(device)
         self.sum_weight=torch.tensor([0.]).to(device)
         self.max_adj=torch.tensor([0.]).to(device)
     
     def add(self, state, action, reward, next_state, done):
         """Add a new experience to memory."""
         
-        temp= 0 if len(self)<self.buffer_size else self.weight[0]
-        self.weight.append(self.max_priority**self.a)
+        temp = 0.
+        self.weight=torch.cat((self.weight,self.max_priority**self.a))
+        
+        if len(self)==self.buffer_size:
+            temp=self.weight[0]
+            self.weight=self.weight[-self.buffer_size:]
+            
         self.sum_weight+=self.weight[-1]-temp
         
         e = self.experience(state, action, reward, next_state, done)
@@ -201,13 +206,14 @@ class ReplayBuffer:
         """Randomly sample a batch of experiences from memory."""
         
         # calcul prioritised probability
-        self.weight=torch.FloatTensor(self.weight).to(self.device)
         prob=self.weight/self.sum_weight 
         
         l=len(self)
-
-        self.idx=np.random.choice(np.arange(l), size=self.batch_size, p=prob.cpu().numpy(),replace=False) # get the sample indexes and store them
+        
+        # get the sample indexes and store them 
+        self.idx=np.random.choice(np.arange(l), size=self.batch_size, p=prob.cpu().numpy(),replace=False) 
         experiences = [self.memory[i] for i in self.idx]
+        
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(self.device)
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(self.device)
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
@@ -215,7 +221,8 @@ class ReplayBuffer:
         dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(self.device)
         
         #evaluate normalised adjustment
-        adj=(l*prob[self.idx])**(-0.5*self.b)
+        ## I multiply the power by 0.5 because it will be squared in the loss function
+        adj=(l*prob[self.idx])**(-0.5*self.b) 
         max_adjs=torch.cummax(torch.cat((self.max_adj,adj)),dim=0)[0][1:]
         adj/=max_adjs
         self.max_adj=max_adjs[-1:]
@@ -232,15 +239,13 @@ class ReplayBuffer:
     
         delta=delta.abs()+EPS
         
-        self.max_priority=max(self.max_priority,delta.max().item())
+        self.max_priority=torch.max(torch.cat((self.max_priority,delta)),dim=0,keepdim=True)[0]
         
         delta=delta**self.a
         
         self.sum_weight+=(delta-self.weight[self.idx]).sum()
         
         self.weight[self.idx]=delta
-        
-        self.weight = deque(self.weight.cpu().numpy(),maxlen=self.buffer_size)
 
             
         
