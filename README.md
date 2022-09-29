@@ -84,7 +84,7 @@ You can train and/or inference Navigation (Pixels) environment:
 
 First, go to `p1_navigation/`.
 
-Then, run the traing and/or inference cell of `Deep_Q_Network_Navigation(_Pixels).ipynb`.
+Then, run the training and/or inference cell of `Deep_Q_Network_Navigation(_Pixels).ipynb`.
 
 The pre-trained model with the highest score is stored in `Navigation_(Pixels_)checkpoint`.
 
